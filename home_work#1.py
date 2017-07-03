@@ -1,91 +1,101 @@
 #!/usr/bin/env python
 
-import os.path #to check if the file exists
-import sys # for using an argument (argv)
+''' module to forward messages from input file to addressants in separetade packets. Remember that one messages could be addressed to many addressants'''
 
-FILE_PATH = sys.argv[1] #from first argument we take a path to file
-IVASYK = 'IVASYK.txt' # id 0
-DMYTRYK = 'DMYTRYK.txt' # id 1
-OSTAP = 'OSTAP.txt' # id 2
-LESYA = 'LESYA.txt' # id 3
+import os
+import sys
 
+# global constants
 
-dict_out = {0: [], 1: [], 2: [], 3: []} #to divide into a dict with lists
+FILE_PATH = sys.argv[1]
+IVASYK = 'IVASYK'
+DMYTRYK = 'DMYTRYK'
+OSTAP = 'OSTAP'
+LESYA = 'LESYA'
+EXTENSION = '.txt'
+LESYA_SIGNAL = ' end'
+
+receivers = (IVASYK, DMYTRYK, OSTAP, LESYA)
+
+DICT_OUT = {contact: [] for contact in receivers}  # to divide into a dict with lists
+
 
 def check_args():
+
+    ''' this function needs to check numbers of arguments from command line'''
+
     if len(sys.argv) != 2:
         print("please run the program in this way:\n")
         print("python home_work#1 txt_file.txt")
+        exit(1)
 
-# in case when file not exist program exit
-def existsCheck(path):
+
+def exists_check(path):
+
+    '''here we check if file exists'''
+
     try:
         os.path.exists(path)
-    except False:
+    except FileNotFoundError:
         print("Not exists: exit\n")
         exit(1)
 
-# IVASYK check
-#Remember that empty line (\n) also is message!!!
-def check_0(line):
-    if (len(line)%2 == 0):
-        return True
+# Remember that empty line (\n) also is message!!!
+def check_ivasyk(line):
 
-#DMYTRYK check
-def check_1(line):
-    if not check_0(line) and line[0].isupper():
-        return True
+    '''here we check @line for IVASYK and return a boolean'''
 
-#OSTAP check
-def check_2(line):
-    if not check_3(line) and not check_0(line) and not check_1(line):
-        return True
+    return (len(line) % 2 == 0)
 
-#LESYA check
-def check_3(line):
-    if line.endswith(' end'):
-        return True
 
-#here we will forward each line to the correct key in dictionary
-def forwardMessages(path):
+def check_dmytryk(line):
+
+    '''here we check @line for DMYTRYK and return a boolean'''
+
+    return (not check_ivasyk(line) and line[0].isupper())
+
+
+def check_lesya(line):
+
+    '''here we check @line for LESYA and return a boolean'''
+
+    return (line.endswith(LESYA_SIGNAL))
+
+
+def forward_messages(path):
+
+    '''here we will forward each line to the correct key in       dictionary'''
+
     with open(path) as f:
         content = f.readlines()
         content = [x.strip('\n') for x in content]
-    for index in content:
-        if check_0(index):
-            dict_out[0].append(index) # adding line to to dictionary
-        if check_1(index):
-            dict_out[1].append(index)
-        if check_3(index):
-            dict_out[3].append(index)
-        if check_2(index):
-            dict_out[2].append(index)
-          
-    
-#creating an output files
-def createFiles(dict_to_divide):
-    file_I = open(IVASYK, "w")
-    for line in dict_to_divide[0]:
-        file_I.write(line + "\n")
-    file_I.close()
-    file_D = open(DMYTRYK, "w")
-    for line in dict_to_divide[1]:
-        file_D.write(line + "\n")
-    file_D.close()
-    file_O = open(OSTAP, "w")
-    for line in dict_to_divide[2]:
-        file_O.write(line + "\n")
-    file_O.close()
-    file_L = open(LESYA, "w")
-    for line in dict_to_divide[3]:
-        file_L.write(line + "\n")
-    file_L.close()
+    for lines in content:
+        if check_lesya(lines):
+            DICT_OUT[LESYA].append(lines)  # adding line to to dictionary
+        elif check_ivasyk(lines):
+            DICT_OUT[IVASYK].append(lines)
+        elif check_dmytryk(lines):
+            DICT_OUT[DMYTRYK].append(lines)
+        else:
+            DICT_OUT[OSTAP].append(lines)
+
+
+def create_files(dict_to_divide):
+
+    ''' here we create an output files which will contain an    messagess for each receiver'''
+
+    for contact in receivers:
+        with open(contact + EXTENSION, 'w') as out_f:
+            for line in dict_to_divide[contact]:
+                out_f.write(line + '\n')
+
 
 def main():
     check_args()
-    existsCheck(FILE_PATH)
-    forwardMessages(FILE_PATH)
-    createFiles(dict_out)
+    exists_check(FILE_PATH)
+    forward_messages(FILE_PATH)
+    create_files(DICT_OUT)
 
 if __name__ == "__main__":
     main()
+
